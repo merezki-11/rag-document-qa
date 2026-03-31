@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+langchain==0.3.25
+langchain-community==0.3.24
+langchain-core==0.3.59
+langchain-google-genai==2.0.10
+langchain-text-splitters
+chromadb
+pypdf
+python-dotenv
