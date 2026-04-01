@@ -30,7 +30,8 @@ embeddings = GoogleGenerativeAIEmbeddings(model="models/gemini-embedding-001")
 
 def ensure_vectorstore():
     db_path = Path(PERSIST_DIR)
-    if not db_path.exists() or not any(db_path.iterdir()):
+    contents = [f for f in db_path.iterdir() if f.name != '.gitkeep'] if db_path.exists() else []
+    if not db_path.exists() or not contents:
         print("ChromaDB not found — running ingestion...")
         loader = PyPDFLoader("attention.pdf")
         documents = loader.load()
@@ -42,7 +43,6 @@ def ensure_vectorstore():
             persist_directory=PERSIST_DIR
         )
         print(f"Ingestion complete — {len(chunks)} chunks stored")
-
 @app.on_event("startup")
 async def startup_event():
     ensure_vectorstore()
