@@ -9,9 +9,10 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from dotenv import load_dotenv
-import os
 import shutil
 import tempfile
+import os
+from pathlib import Path
 
 load_dotenv()
 
@@ -25,8 +26,26 @@ app.add_middleware(
 )
 
 PERSIST_DIR = "./chroma_db"
-
 embeddings = GoogleGenerativeAIEmbeddings(model="models/gemini-embedding-001")
+
+def ensure_vectorstore():
+    db_path = Path(PERSIST_DIR)
+    if not db_path.exists() or not any(db_path.iterdir()):
+        print("ChromaDB not found — running ingestion...")
+        loader = PyPDFLoader("attention.pdf")
+        documents = loader.load()
+        splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
+        chunks = splitter.split_documents(documents)
+        Chroma.from_documents(
+            documents=chunks,
+            embedding=embeddings,
+            persist_directory=PERSIST_DIR
+        )
+        print(f"Ingestion complete — {len(chunks)} chunks stored")
+
+@app.on_event("startup")
+async def startup_event():
+    ensure_vectorstore()
 
 def get_vectorstore():
     return Chroma(
@@ -89,7 +108,7 @@ async def upload_pdf(file: UploadFile = File(...)):
         splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
         chunks = splitter.split_documents(documents)
 
-        vectorstore = Chroma.from_documents(
+        Chroma.from_documents(
             documents=chunks,
             embedding=embeddings,
             persist_directory=PERSIST_DIR
